@@ -16,9 +16,7 @@ extern "C"
 #define MQTT_PORT SECRECT_MQTT_PORT
 #define MQTT_USERNAME SECRECT_MQTT_USERNAME
 #define MQTT_PASSWORD SECRECT_MQTT_PASSWORD
-//#define MQTT_HOST IPAddress(37, 187, 106, 16)
-//#define MQTT_PORT 1883
-#define MQTT_SENSOR_NAME "sensor1"
+
 #define MQTT_TOPIC_STATE "stat/sensor1/state"
 #define MQTT_TOPIC_STATE_READY "READY"
 #define MQTT_TOPIC_STATE_ENABLED "ENABLED"
@@ -51,7 +49,7 @@ bool isEnabled = false;
 
 void publishReadyState()
 {
-  Serial.print("MQTT ");
+  Serial.print("MQTT publish ");
   Serial.print(MQTT_TOPIC_STATE);
   Serial.print(" ");
   Serial.println(MQTT_TOPIC_STATE_READY);
@@ -64,29 +62,29 @@ void handleMessage(char *topic, char *payload)
   {
     if (strcmp(payload, MQTT_TOPIC_STATE_ENABLED) == 0)
     {
-      Serial.print("Disable sensor");
       isEnabled = true;
+      Serial.println("Sensor enabled");
     }
     else if (strcmp(payload, MQTT_TOPIC_STATE_DISABLED) == 0)
     {
-      Serial.print("Enable sensor");
       isEnabled = false;
+      Serial.println("Sensor disabled");
     }
   }
 }
 
 void noiseDetectedTimerCallback()
 {
-  Serial.println("LED off");
+  Serial.println("Sensor LED off");
   digitalWrite(DIGITAL_PIN_LED, LOW);
 }
 
 void hasNoiseBufferReachedLimitTimerCallback()
 {
-  Serial.println("LED off");
+  Serial.println("Sensor LED off");
   digitalWrite(DIGITAL_PIN_LED, LOW);
 
-  Serial.print("MQTT ");
+  Serial.print("MQTT publish ");
   Serial.print(MQTT_TOPIC_NOISE);
   Serial.print(" ");
   Serial.println(MQTT_TOPIC_NOISE_OFF);
@@ -191,29 +189,30 @@ bool hasNoiseBufferReachedLimit(uint8_t limit)
 
 void connectToWifi()
 {
-  Serial.println("Connecting to Wi-Fi...");
+  Serial.println("Wifi connecting...");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 }
 
 void connectToMqtt()
 {
-  Serial.println("Connecting to MQTT...");
+  Serial.println("MQTT connecting...");
   mqttClient.connect();
 }
 
 void WiFiEvent(WiFiEvent_t event)
 {
-  Serial.printf("[WiFi-event] event: %d\n", event);
+  Serial.printf("Wifi event %d", event);
+  Serial.println();
   switch (event)
   {
   case SYSTEM_EVENT_STA_GOT_IP:
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
+    Serial.println("Wifi connected");
+    Serial.print("  IP address: ");
     Serial.println(WiFi.localIP());
     connectToMqtt();
     break;
   case SYSTEM_EVENT_STA_DISCONNECTED:
-    Serial.println("WiFi lost connection");
+    Serial.println("Wifi connection lost");
     xTimerStop(mqttReconnectTimer, 0); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
     xTimerStart(wifiReconnectTimer, 0);
     break;
@@ -222,20 +221,22 @@ void WiFiEvent(WiFiEvent_t event)
 
 void onMqttConnect(bool sessionPresent)
 {
-  Serial.println("Connected to MQTT.");
-  Serial.print("Session present: ");
+  Serial.println("MQTT connected");
+  Serial.print("  Session present: ");
   Serial.println(sessionPresent);
 
-  uint16_t packetIdSub = mqttClient.subscribe(MQTT_TOPIC_STATE, 0);
-  Serial.print("Subscribing at QoS 0, packetId: ");
-  Serial.println(packetIdSub);
+  uint16_t packetId = mqttClient.subscribe(MQTT_TOPIC_STATE, 0);
+  Serial.print("MQTT subscribing ");
+  Serial.println(MQTT_TOPIC_STATE);
+  Serial.print("  PacketId: ");
+  Serial.println(packetId);
 
   publishReadyState();
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
-  Serial.println("Disconnected from MQTT.");
+  Serial.println("MQTT disconnected");
 
   if (WiFi.isConnected())
   {
@@ -245,36 +246,36 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 
 void onMqttSubscribe(uint16_t packetId, uint8_t qos)
 {
-  Serial.println("Subscribe acknowledged.");
-  Serial.print("  packetId: ");
+  Serial.println("MQTT subscription acknowledged");
+  Serial.print("  PacketId: ");
   Serial.println(packetId);
-  Serial.print("  qos: ");
-  Serial.println(qos);
 }
 
 void onMqttUnsubscribe(uint16_t packetId)
 {
-  Serial.println("Unsubscribe acknowledged.");
-  Serial.print("  packetId: ");
+  Serial.println("MQTT unsubscription acknowledged");
+  Serial.print("  PacketId: ");
   Serial.println(packetId);
 }
 
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
-  Serial.println("Publish received.");
-  Serial.print("  topic: ");
+  Serial.println("MQTT message received");
+  Serial.print("  Topic: ");
   Serial.println(topic);
-  Serial.print("  qos: ");
+  Serial.print("  Payload: ");
+  Serial.println(payload);
+  Serial.print("  Qos: ");
   Serial.println(properties.qos);
-  Serial.print("  dup: ");
+  Serial.print("  Dup: ");
   Serial.println(properties.dup);
-  Serial.print("  retain: ");
+  Serial.print("  Retain: ");
   Serial.println(properties.retain);
-  Serial.print("  len: ");
+  Serial.print("  Len: ");
   Serial.println(len);
-  Serial.print("  index: ");
+  Serial.print("  Index: ");
   Serial.println(index);
-  Serial.print("  total: ");
+  Serial.print("  Total: ");
   Serial.println(total);
 
   handleMessage(topic, payload);
@@ -282,8 +283,8 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
 void onMqttPublish(uint16_t packetId)
 {
-  Serial.println("Publish acknowledged.");
-  Serial.print("  packetId: ");
+  Serial.println("MQTT publish acknowledged");
+  Serial.print("  PacketId: ");
   Serial.println(packetId);
 }
 
@@ -336,13 +337,14 @@ void loop()
 
     float analogSampleVoltage = (float)analogSample / 4095.0f * 3.3f;
     String debugInfo;
-    debugInfo += "digitalSample: ";
+    debugInfo += "Sensor";
+    debugInfo += "\r\n  digitalSample: ";
     debugInfo += String(digitalSample);
-    debugInfo += "\r\nanalogSample: ";
+    debugInfo += "\r\n  analogSample: ";
     debugInfo += String(analogSample);
-    debugInfo += "\r\nanalogSampleVoltage: ";
+    debugInfo += "\r\n  analogSampleVoltage: ";
     debugInfo += String(analogSampleVoltage, 3);
-    debugInfo += "\r\nsampleBuffer: ";
+    debugInfo += "\r\n  sampleBuffer: ";
     for (uint8_t i = 0; i < SAMPLE_BUFFER_SIZE; i++)
     {
       debugInfo += String(i);
@@ -353,7 +355,7 @@ void loop()
         debugInfo += ", ";
       }
     }
-    debugInfo += "\r\nnoiseBuffer: ";
+    debugInfo += "\r\n  noiseBuffer: ";
     for (uint8_t i = 0; i < NOISE_BUFFER_SIZE; i++)
     {
       debugInfo += String(i);
@@ -371,26 +373,28 @@ void loop()
       clearSampleBuffer();
       updateNoiseBuffer();
 
-      Serial.println("haveSampleBufferSamplesReachedLimit");
+      Serial.println("Sensor haveSampleBufferSamplesReachedLimit: true");
 
       if (hasNoiseBufferReachedLimit(2))
       {
+        Serial.println("Sensor hasNoiseBufferReachedLimit: true");
+
         clearNoiseBuffer();
 
-        Serial.print("MQTT ");
+        Serial.print("MQTT publish ");
         Serial.print(MQTT_TOPIC_NOISE);
         Serial.print(" ");
         Serial.println(MQTT_TOPIC_NOISE_ON);
         mqttClient.publish(MQTT_TOPIC_NOISE, 0, true, MQTT_TOPIC_NOISE_ON);
 
-        Serial.println("LED on");
+        Serial.println("Sensor LED on");
         digitalWrite(DIGITAL_PIN_LED, HIGH);
 
         xTimerStart(hasNoiseBufferReachedLimitTimer, 0);
       }
       else
       {
-        Serial.println("LED on");
+        Serial.println("Sensor LED on");
         digitalWrite(DIGITAL_PIN_LED, HIGH);
 
         xTimerStart(noiseDetectedTimer, 0);

@@ -2,3 +2,5 @@
 .piolibdeps
 .vscode/*
 src/secrets.h
+.travis.yml
+lib/readme.txt
