@@ -17,11 +17,15 @@ extern "C"
 #define MQTT_USERNAME SECRECT_MQTT_USERNAME
 #define MQTT_PASSWORD SECRECT_MQTT_PASSWORD
 
-#define MQTT_TOPIC_STATE "stat/sensor1/state"
+#define MQTT_TOPIC_STATE "home/ella_room/sensor/state"
 #define MQTT_TOPIC_STATE_READY "READY"
 #define MQTT_TOPIC_STATE_ENABLED "ENABLED"
 #define MQTT_TOPIC_STATE_DISABLED "DISABLED"
-#define MQTT_TOPIC_NOISE "stat/sensor1/noise"
+#define MQTT_TOPIC_COMMAND "home/ella_room/sensor/command"
+#define MQTT_TOPIC_COMMAND_ENABLE "ENABLE"
+#define MQTT_TOPIC_COMMAND_DISABLE "DISABLE"
+#define MQTT_TOPIC_COMMAND_CHECK "CHECK"
+#define MQTT_TOPIC_NOISE "home/ella_room/sensor/noise"
 #define MQTT_TOPIC_NOISE_ON "ON"
 #define MQTT_TOPIC_NOISE_OFF "OFF"
 
@@ -47,28 +51,45 @@ TimerHandle_t wifiReconnectTimer;
 
 bool isEnabled = false;
 
-void publishReadyState()
+void publishMessage(char *topic, char *payload)
 {
   Serial.print("MQTT publish ");
-  Serial.print(MQTT_TOPIC_STATE);
+  Serial.print(topic);
   Serial.print(" ");
-  Serial.println(MQTT_TOPIC_STATE_READY);
-  mqttClient.publish(MQTT_TOPIC_STATE, 0, true, MQTT_TOPIC_STATE_READY);
+  Serial.println(payload);
+  mqttClient.publish(topic, 1, true, payload);
 }
 
 void handleMessage(char *topic, char *payload)
 {
-  if (strcmp(topic, MQTT_TOPIC_STATE) == 0)
+  if (strcmp(topic, MQTT_TOPIC_COMMAND) == 0)
   {
-    if (strcmp(payload, MQTT_TOPIC_STATE_ENABLED) == 0)
+    if (strcmp(payload, MQTT_TOPIC_COMMAND_ENABLE) == 0)
     {
       isEnabled = true;
       Serial.println("Sensor enabled");
+
+      publishMessage(MQTT_TOPIC_STATE, MQTT_TOPIC_STATE_ENABLED);
     }
-    else if (strcmp(payload, MQTT_TOPIC_STATE_DISABLED) == 0)
+    else if (strcmp(payload, MQTT_TOPIC_COMMAND_DISABLE) == 0)
     {
       isEnabled = false;
       Serial.println("Sensor disabled");
+
+      publishMessage(MQTT_TOPIC_STATE, MQTT_TOPIC_STATE_DISABLED);
+    }
+    else if (strcmp(payload, MQTT_TOPIC_COMMAND_CHECK) == 0)
+    {
+      Serial.println("Check sensor state");
+
+      if(isEnabled)
+      {
+        publishMessage(MQTT_TOPIC_STATE, MQTT_TOPIC_STATE_ENABLED);
+      }
+      else
+      {
+        publishMessage(MQTT_TOPIC_STATE, MQTT_TOPIC_STATE_DISABLED);
+      }
     }
   }
 }
@@ -84,11 +105,7 @@ void hasNoiseBufferReachedLimitTimerCallback()
   Serial.println("Sensor LED off");
   digitalWrite(DIGITAL_PIN_LED, LOW);
 
-  Serial.print("MQTT publish ");
-  Serial.print(MQTT_TOPIC_NOISE);
-  Serial.print(" ");
-  Serial.println(MQTT_TOPIC_NOISE_OFF);
-  mqttClient.publish(MQTT_TOPIC_NOISE, 0, true, MQTT_TOPIC_NOISE_OFF);
+  publishMessage(MQTT_TOPIC_NOISE, MQTT_TOPIC_NOISE_OFF);
 }
 
 void updateSampleBuffer(uint16_t sample)
@@ -225,13 +242,13 @@ void onMqttConnect(bool sessionPresent)
   Serial.print("  Session present: ");
   Serial.println(sessionPresent);
 
-  uint16_t packetId = mqttClient.subscribe(MQTT_TOPIC_STATE, 0);
+  uint16_t packetId = mqttClient.subscribe(MQTT_TOPIC_COMMAND, 1);
   Serial.print("MQTT subscribing ");
-  Serial.println(MQTT_TOPIC_STATE);
+  Serial.println(MQTT_TOPIC_COMMAND);
   Serial.print("  PacketId: ");
   Serial.println(packetId);
 
-  publishReadyState();
+  publishMessage(MQTT_TOPIC_STATE, MQTT_TOPIC_STATE_READY);
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
@@ -249,6 +266,8 @@ void onMqttSubscribe(uint16_t packetId, uint8_t qos)
   Serial.println("MQTT subscription acknowledged");
   Serial.print("  PacketId: ");
   Serial.println(packetId);
+  Serial.print("  Qos: ");
+  Serial.println(qos);
 }
 
 void onMqttUnsubscribe(uint16_t packetId)
@@ -381,11 +400,7 @@ void loop()
 
         clearNoiseBuffer();
 
-        Serial.print("MQTT publish ");
-        Serial.print(MQTT_TOPIC_NOISE);
-        Serial.print(" ");
-        Serial.println(MQTT_TOPIC_NOISE_ON);
-        mqttClient.publish(MQTT_TOPIC_NOISE, 0, true, MQTT_TOPIC_NOISE_ON);
+        publishMessage(MQTT_TOPIC_NOISE, MQTT_TOPIC_NOISE_ON);
 
         Serial.println("Sensor LED on");
         digitalWrite(DIGITAL_PIN_LED, HIGH);
