@@ -64,30 +64,37 @@ void handleMessage(char *topic, char *payload)
 {
   if (strcmp(topic, MQTT_TOPIC_COMMAND) == 0)
   {
+    Serial.print("Handle command ");
+    Serial.println(payload);
+	  
     if (strcmp(payload, MQTT_TOPIC_COMMAND_ENABLE) == 0)
     {
+      Serial.println("Enable sensor");
+
       isEnabled = true;
-      Serial.println("Sensor enabled");
 
       publishMessage(MQTT_TOPIC_STATE, MQTT_TOPIC_STATE_ENABLED);
     }
     else if (strcmp(payload, MQTT_TOPIC_COMMAND_DISABLE) == 0)
     {
+      Serial.println("Disable sensor");
+
       isEnabled = false;
-      Serial.println("Sensor disabled");
 
       publishMessage(MQTT_TOPIC_STATE, MQTT_TOPIC_STATE_DISABLED);
     }
     else if (strcmp(payload, MQTT_TOPIC_COMMAND_CHECK) == 0)
     {
-      Serial.println("Check sensor state");
-
       if(isEnabled)
       {
+        Serial.println("Sensor is enabled");
+
         publishMessage(MQTT_TOPIC_STATE, MQTT_TOPIC_STATE_ENABLED);
       }
       else
       {
+        Serial.println("Sensor is disabled");
+
         publishMessage(MQTT_TOPIC_STATE, MQTT_TOPIC_STATE_DISABLED);
       }
     }
@@ -297,7 +304,11 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   Serial.print("  Total: ");
   Serial.println(total);
 
-  handleMessage(topic, payload);
+  char payload_length_fixed[len + 1];
+  memcpy(payload_length_fixed, &payload[0], len);
+  payload_length_fixed[len] = '\0';
+
+  handleMessage(topic, payload_length_fixed);
 }
 
 void onMqttPublish(uint16_t packetId)
