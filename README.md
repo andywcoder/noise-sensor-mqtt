@@ -7,7 +7,7 @@ A noise sensor based on the ESP32 SoC that publishes its state over MQTT.
 1. Download and install <a href="https://platformio.org/platformio-ide">PlatformIO IDE for Visual Studio Code or Atom</a>
 2. Clone or download this respository
 3. Open the solution folder in PlatformIO
-4. Create a the file src/secrets.h with the following preprocessing directives
+4. Create the file src/secrets.h with the following preprocessing directives
 	* #define SECRECT_WIFI_SSID "ssid"
     * #define SECRECT_WIFI_PASSWORD "password"
 	* #define SECRECT_MQTT_HOST IPAddress(192, 168, 0, 1)
