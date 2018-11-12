@@ -1,4 +1,4 @@
-# mqtt-esp32-noise-sensor
+# noise-sensor-mqtt
 
 A noise sensor based on the ESP32 SoC that publishes its state over MQTT.
 
