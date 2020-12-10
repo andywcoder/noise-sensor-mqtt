@@ -1,5 +1,4 @@
-.pioenvs
-.piolibdeps
+.pio
 .vscode/*
 src/secrets.h
 .travis.yml

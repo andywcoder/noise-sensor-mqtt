@@ -17,15 +17,15 @@ extern "C"
 #define MQTT_USERNAME SECRECT_MQTT_USERNAME
 #define MQTT_PASSWORD SECRECT_MQTT_PASSWORD
 
-#define MQTT_TOPIC_STATE "home/ella_room/sensor/state"
+#define MQTT_TOPIC_STATE "sound_sensor_1/state"
 #define MQTT_TOPIC_STATE_READY "READY"
 #define MQTT_TOPIC_STATE_ENABLED "ENABLED"
 #define MQTT_TOPIC_STATE_DISABLED "DISABLED"
-#define MQTT_TOPIC_COMMAND "home/ella_room/sensor/command"
+#define MQTT_TOPIC_COMMAND "sound_sensor_1/command"
 #define MQTT_TOPIC_COMMAND_ENABLE "ENABLE"
 #define MQTT_TOPIC_COMMAND_DISABLE "DISABLE"
 #define MQTT_TOPIC_COMMAND_CHECK "CHECK"
-#define MQTT_TOPIC_NOISE "home/ella_room/sensor/noise"
+#define MQTT_TOPIC_NOISE "sound_sensor_1/noise"
 #define MQTT_TOPIC_NOISE_ON "ON"
 #define MQTT_TOPIC_NOISE_OFF "OFF"
 
